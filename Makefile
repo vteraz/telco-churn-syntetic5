@@ -110,7 +110,10 @@ install-api: ## Install API
 	pip install -r requirements-api.txt
 
 run-api: ## Run API
-	uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
+	uvicorn src.api.main:app --host 0.0.0.0 --port 8080 --reload
+
+run-api-mldlow: ## Run API
+	MLFLOW_TRACKING_URI=http://localhost:5000 uvicorn src.api.main:app --host 0.0.0.0 --port 8080 --reload
 
 docker-build-api: ## Build API Docker image
 	docker build -f Dockerfile.api -t churn-api:latest .
@@ -118,6 +121,15 @@ docker-build-api: ## Build API Docker image
 docker-run-api: ## Run API Docker container
 	docker run -p 8000:8000 churn-api:latest
 	
+
+train:  # Тренування моделі
+	python pipelines/train.py
+
+test:  # Запуск тестів
+	pytest tests/
+
+deploy:  # Деплоймент
+	docker compose up -d
 
 train:  # Тренування моделі
 	python pipelines/train.py

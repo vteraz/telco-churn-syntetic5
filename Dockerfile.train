@@ -1,0 +1,10 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Копіюємо тільки необхідне (краще для кешу)
+COPY requirements-train.txt .
+RUN pip install --no-cache-dir -r /app/requirements-train.txt
+
+COPY pipelines/ ./pipelines/
+COPY config/ ./config/                    

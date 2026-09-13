@@ -1,12 +1,27 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
 COPY requirements-api.txt .
-RUN pip install --no-cache-dir -r requirements-api.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements-api.txt
 
+#### Runner ###
+
+FROM python:3.11-slim AS runner
+
+WORKDIR /app
+
+RUN useradd -m -u 1000 appuser
+
+COPY --from=builder /install /usr/local
 COPY src/ src/
-COPY models/ models/   
+COPY models/ models/
+
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 

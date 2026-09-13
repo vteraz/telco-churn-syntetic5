@@ -1,42 +1,52 @@
-import joblib
-import pandas as pd
 import os
 import sys
+import joblib
+import pandas as pd
 from typing import Dict
 
-# Import mlflow only if needed, but don't fail startup
+from mlflow.tracking import MlflowClient
+
+# Import mlflow only if needed, without failing startup
 try:
     import mlflow
     import mlflow.sklearn
     MLFLOW_AVAILABLE = True
 except ImportError:
     MLFLOW_AVAILABLE = False
-    print("Warning: mlflow not available, will use local model only", file=sys.stderr)
+    print("Warning: MLflow not available, using local model fallback.", file=sys.stderr)
 
-# Local model path fallback
+# Local model fallback path
 MODEL_PATH = os.getenv("MODEL_PATH", "models/churn_model.pkl")
 
 # MLflow model settings
 MLFLOW_TRACKING_URI = os.getenv('MLFLOW_TRACKING_URI', '').strip()
-MLFLOW_MODEL_NAME = os.getenv('MLFLOW_MODEL_NAME', 'ChurnModel')
-MLFLOW_MODEL_STAGE = os.getenv('MLFLOW_MODEL_STAGE', 'Production')
+MLFLOW_MODEL_NAME = os.getenv('MLFLOW_REGISTERED_NAME', os.getenv('MLFLOW_MODEL_NAME', 'ChurnModel'))
+MLFLOW_MODEL_ALIAS = os.getenv('MLFLOW_ALIAS', os.getenv('MLFLOW_MODEL_ALIAS', 'champion')).strip()
 
 model = None
 model_source = None
 
-# Try MLflow registry only if tracking URI is explicitly provided and mlflow is available
+# Attempt MLflow loading if configured
 if MLFLOW_AVAILABLE and MLFLOW_TRACKING_URI:
     try:
         mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-        model_uri = f"models:/{MLFLOW_MODEL_NAME}/{MLFLOW_MODEL_STAGE}"
+        client = MlflowClient(tracking_uri=MLFLOW_TRACKING_URI)
+        
+        # Support both new Alias syntax (@champion) and legacy Stage syntax (/Production)
+        model_version = client.get_model_version_by_alias(MLFLOW_MODEL_NAME, MLFLOW_MODEL_ALIAS)
+        
+        # 2. Беремо прямий URI артефакту з конкретного Run (наприклад: runs:/<run_id>/model)
+        model_uri = f"runs:/{model_version.run_id}/model"
+            
+        print(f'Loading model via {model_uri}')
+
         model = mlflow.sklearn.load_model(model_uri)
         model_source = f"MLflow registry ({model_uri})"
-        print(f"✓ Model loaded from {model_source}")
+        print(f"✓ Model loaded successfully from {model_source}")
     except Exception as e:
-        print(f"Warning: Could not load from MLflow: {e}", file=sys.stderr)
-        # Fall through to local model attempt
+        print(f"Warning: Could not load from MLflow ({e}). Falling back to local model...", file=sys.stderr)
 
-# Fallback to local model file
+# Fallback to local .pkl file
 if model is None:
     try:
         model = joblib.load(MODEL_PATH)
@@ -48,63 +58,58 @@ if model is None:
         model_source = None
 
 if model is None:
-    print("Warning: No model loaded - predictions will fail until model is available", file=sys.stderr)
+    print("Warning: No model loaded - predictions will fail until a model becomes available.", file=sys.stderr)
 
 
 def preprocess_features(features: Dict) -> pd.DataFrame:
-    """Return a DataFrame suitable for the saved sklearn Pipeline.
-
-    Do minimal numeric coercion and otherwise leave categorical values as-is
-    so the pipeline's ColumnTransformer / OneHotEncoder can handle them.
+    """Return a DataFrame formatted for the saved sklearn Pipeline.
+    
+    Performs minimal numeric coercion and supplies missing timestamp features.
     """
     df = pd.DataFrame([features])
 
-    # Додаємо дефолтну дату, якщо модель вимагає 'RecordDate', 
-    # але її немає у вхідній схемі запиту від користувача.
+    # Inject current date dynamically if required by feature pipeline schema
     if 'RecordDate' not in df.columns:
-        df['RecordDate'] = pd.Timestamp.today().strftime('%Y-%m-%d')
-        # Або, якщо модель очікує специфічний формат/значення, наприклад:
-        # df['RecordDate'] = "2026-09-03"
+        df['RecordDate'] = pd.Timestamp.now().strftime('%Y-%m-%d')
 
-    # Ensure numeric columns are numeric (common potential issue)
-    if 'TotalCharges' in df.columns:
-        df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
-    if 'MonthlyCharges' in df.columns:
-        df['MonthlyCharges'] = pd.to_numeric(df['MonthlyCharges'], errors='coerce')
-    if 'tenure' in df.columns:
-        df['tenure'] = pd.to_numeric(df['tenure'], errors='coerce')
+    # Ensure numerical columns are converted cleanly
+    for col in ['TotalCharges', 'MonthlyCharges', 'tenure']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    # Fill NA with reasonable defaults (pipeline may still raise if unexpected)
+    # Fill NA with neutral defaults
     df = df.fillna({
-        'TotalCharges': 0,
-        'MonthlyCharges': 0,
+        'TotalCharges': 0.0,
+        'MonthlyCharges': 0.0,
         'tenure': 0
     })
 
     return df
 
 
-
 def predict_churn(features: Dict) -> Dict:
+    """Accepts feature dictionary and returns prediction probabilities."""
     if model is None:
         return {"error": "Model not loaded"}
 
     try:
         X = preprocess_features(features)
 
-        # Some MLflow-loaded models may be pyfunc wrappers; prefer predict_proba when available
+        # Prefer predict_proba for probabilities, fall back to binary predict
         if hasattr(model, 'predict_proba'):
             prob = model.predict_proba(X)[0][1]
-        else:
-            # fallback to predict (binary 0/1) and map to probability-like value
+        elif hasattr(model, 'predict'):
             pred = model.predict(X)[0]
             prob = float(pred)
+        else:
+            return {"error": "Loaded model object does not support prediction methods."}
 
         pred = 1 if prob >= 0.5 else 0
 
         return {
             "churn_probability": round(float(prob), 4),
             "churn_prediction": int(pred),
+            "model_source": model_source,
             "features_used": list(X.columns)
         }
     except Exception as e:
