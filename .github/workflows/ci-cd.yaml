@@ -15,6 +15,6 @@ jobs:
             - uses: actions/checkout@v6
               name: Checkout
             - name: "Setup Python ${{ env.PYTHON_VERSION }} env"
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v7
             - name: Show version
               run: python -c "import sys; print(sys.version)"
