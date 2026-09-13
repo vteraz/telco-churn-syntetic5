@@ -16,5 +16,8 @@ jobs:
               name: Checkout
             - name: "Setup Python ${{ env.PYTHON_VERSION }} env"
               uses: actions/setup-python@v7
+              with:
+                python-version: ${{env.PYTHON_VERSION}}
+                cache: 'pip'
             - name: Show version
               run: python -c "import sys; print(sys.version)"
