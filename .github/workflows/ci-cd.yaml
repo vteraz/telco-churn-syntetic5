@@ -10,7 +10,7 @@ env:
     PYTHON_VERSION: "3.11"
 
 jobs:
-    hello:
+    init:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
@@ -24,3 +24,11 @@ jobs:
               run: python -c "import sys; print(sys.version)"
             - run: pip install --quiet -r requirements-dev.txt
               name: "Install dev dependencies"
+    lint-and-test:
+        needs: [init]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Show version
+              run: python -c "import sys; print(sys.version)"
+
+
