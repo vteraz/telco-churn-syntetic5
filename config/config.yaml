@@ -1,7 +1,7 @@
 # config/config.yaml
 
 generation:
-  samples: 50000                  # кількість клієнтів (табличні дані)
+  samples: 100000                  # кількість клієнтів (табличні дані)
   conv_samples: 7500              # кількість згенерованих розмов support
   start_date: "2023-01-01"
   end_date: "2024-12-31"

@@ -5,14 +5,30 @@ warnings.filterwarnings("ignore", message=".*protected namespace.*", category=Us
 from fastapi import FastAPI, HTTPException
 from datetime import datetime
 import logging
+import json
+import sys
 
 # Імпорти з власного модуля
 from src.api.models import CustomerFeatures, PredictionResponse
 from src.api import predict as predict_module
 
 # Налаштування логування (корисно в контейнері)
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class JsonLogFormatter(logging.Formatter):
+    def format(self, record):
+        return json.dumps({
+            "timestamp": self.formatTime(record),
+            "message": record.getMessage(),
+            "level": record.levelname,
+            "service": "fast-api"
+        })
+handler = logging.StreamHandler(sys.stdout)
+formatter = JsonLogFormatter()
+handler.setFormatter(formatter)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 app = FastAPI(
     title="Telco Customer Churn Prediction API",
@@ -30,7 +46,7 @@ async def startup_event():
         # Можна навіть підняти виняток, якщо критичний запуск без моделі:
         # raise RuntimeError("Не вдалося завантажити модель churn")
     else:
-        logger.info("Модель успішно завантажена при старті API")
+        logger.info("Model has been loaded")
 
 @app.get("/health")
 def health():
@@ -59,6 +75,7 @@ def predict(features: CustomerFeatures):
         # Виклик прогнозу
         result = predict_module.predict_churn(input_data)
 
+        logger.info("Prediction made: ", json.dumps(result))
         if "error" in result:
             raise ValueError(result["error"])
 

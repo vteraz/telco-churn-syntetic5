@@ -184,3 +184,12 @@ dvc.yaml: DVC pipeline definitions.
 Makefile: Convenience commands for setup, generation, training, and more.
 
 requirements-*.txt: Python dependencies for base, API, dev, and ML.
+
+## ML Training
+Запустіть `make train` для тренування моделі churn prediction.
+
+## Deployment
+Використовуйте Kubernetes manifests в deployment/ для production.
+
+## Monitoring
+Скрипти для дріфту в monitoring/.

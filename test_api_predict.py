@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Simple test script for /predict endpoint.
-Requires the API to be running at http://localhost:8000
+Requires the API to be running at http://localhost:8080
 
 Usage:
   python test_api_predict.py
@@ -10,7 +10,7 @@ Usage:
 import requests
 import json
 
-API_URL = "http://localhost:8000"
+API_URL = "http://localhost:8080"
 
 # Sample customer features - adjust values to match your data
 sample_customer = {
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     health_ok = test_health()
     if not health_ok:
         print("\nHealth check failed! Make sure the API is running:")
-        print("  uvicorn src.api.main:app --host 0.0.0.0 --port 8000")
+        print("  uvicorn src.api.main:app --host 0.0.0.0 --port 8080")
         exit(1)
     
     predict_ok = test_predict()
