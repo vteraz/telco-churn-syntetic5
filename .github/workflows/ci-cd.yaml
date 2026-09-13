@@ -5,13 +5,16 @@ on:
         branches:
             - develop
             - 'module-**'
+env:
+    PYTHON_VERSION: "3.11"
 
 jobs:
     hello:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
-            - name: One
-              run: uname -a
-            - name: Two
-              run: ps aux
+              name: Checkout
+            - name: "Setup Python ${{ env.PYTHON_VERSION }} env"
+              uses: actions/setup-python@v5
+            - name: Show version
+              run: python -c "import sys; print(sys.version)"
