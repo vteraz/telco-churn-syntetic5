@@ -21,3 +21,5 @@ jobs:
                 cache: 'pip'
             - name: Show version
               run: python -c "import sys; print(sys.version)"
+            - run: pip install --quiet -r requirements-dev.txt
+              name: "Install dev dependencies"
