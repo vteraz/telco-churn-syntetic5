@@ -1,0 +1,16 @@
+name: Telco Churn ML Pipeline Vasyl Teraz Module 6
+
+on:
+    push:
+        branches:
+            - develop
+            - 'module-**'
+
+jobs:
+    hello:
+        runs-on: ubuntu-latest
+        steps:
+            - name: One
+              run: uname -a
+            - name: Two
+              run: ps aux
