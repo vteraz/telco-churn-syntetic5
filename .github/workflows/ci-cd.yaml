@@ -24,7 +24,7 @@ jobs:
             - name: Show version
               run: python -c "import sys; print(sys.version)"
             - name: "Install dev dependencies"
-              run: pip install --quite -r requirements-dev.txt # this will install cached deps into the project workspace
+              run: pip install --quiet -r requirements-dev.txt # this will install cached deps into the project workspace
             - name: Check code style with flake8
               run: flake8 src/ tests/ --max-line-length=1000 --ignore=E203,B007,F841,F811,W503,F401
             - name: Check code formatting with black
