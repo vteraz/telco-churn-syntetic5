@@ -22,11 +22,8 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from pathlib import Path
 
-import mlflow
 import mlflow.xgboost
-import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyClassifier
 from sklearn.metrics import (
@@ -37,28 +34,30 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 
+import mlflow
 from src.features.build_features import FEATURE_COLUMNS, TARGET_COLUMN, get_X_y
 
-logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s  %(levelname)s  %(name)s  %(message)s")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s  %(levelname)s  %(name)s  %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # ── Quality gate thresholds (slide 12) ───────────────────────────────────────
-MIN_AUC       = 0.82
-MIN_F1        = 0.70
+MIN_AUC = 0.82
+MIN_F1 = 0.70
 MIN_PRECISION = 0.75
-EXPECTED_FEATURES = 19   # must equal len(FEATURE_COLUMNS) - 1 (exclude target)
+EXPECTED_FEATURES = 19  # must equal len(FEATURE_COLUMNS) - 1 (exclude target)
 
 # ── Hyperparameters ────────────────────────────────────────────────────────────
 XGBOOST_PARAMS = {
-    "n_estimators":     300,
-    "max_depth":        4,
-    "learning_rate":    0.05,
-    "subsample":        0.8,
+    "n_estimators": 300,
+    "max_depth": 4,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
     "colsample_bytree": 0.8,
-    "random_state":     42,
+    "random_state": 42,
     "use_label_encoder": False,
-    "eval_metric":      "logloss",
+    "eval_metric": "logloss",
 }
 
 
@@ -68,9 +67,15 @@ def load_data(path: str) -> pd.DataFrame:
     return df
 
 
-def quality_gate(auc: float, f1: float, prec: float,
-                 dummy_auc: float, dummy_f1: float, dummy_prec: float,
-                 n_features: int) -> None:
+def quality_gate(
+    auc: float,
+    f1: float,
+    prec: float,
+    dummy_auc: float,
+    dummy_f1: float,
+    dummy_prec: float,
+    n_features: int,
+) -> None:
     """Assert all quality thresholds.  Exit with code 1 on failure (slide 12)."""
     failures = []
 
@@ -96,9 +101,11 @@ def quality_gate(auc: float, f1: float, prec: float,
     logger.info("✓ All quality gates passed")
 
 
-def train(data_path: str = "data/raw/telco_train.csv",
-          run_name: str = "telco-churn-train",
-          register: bool = True) -> None:
+def train(
+    data_path: str = "data/raw/telco_train.csv",
+    run_name: str = "telco-churn-train",
+    register: bool = True,
+) -> None:
 
     df = load_data(data_path)
     X, y = get_X_y(df)
@@ -114,24 +121,22 @@ def train(data_path: str = "data/raw/telco_train.csv",
         mlflow.log_params(XGBOOST_PARAMS)
         mlflow.log_param("data_path", data_path)
         mlflow.log_param("n_train", len(X_train))
-        mlflow.log_param("n_test",  len(X_test))
+        mlflow.log_param("n_test", len(X_test))
 
         # ── Train XGBoost ─────────────────────────────────────────────────
         model = XGBClassifier(**XGBOOST_PARAMS)
-        model.fit(X_train, y_train,
-                  eval_set=[(X_test, y_test)],
-                  verbose=False)
+        model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
 
         # ── Evaluate ──────────────────────────────────────────────────────
-        y_pred      = model.predict(X_test)
-        y_proba     = model.predict_proba(X_test)[:, 1]
+        y_pred = model.predict(X_test)
+        y_proba = model.predict_proba(X_test)[:, 1]
 
-        auc  = roc_auc_score(y_test, y_proba)
-        f1   = f1_score(y_test, y_pred)
+        auc = roc_auc_score(y_test, y_proba)
+        f1 = f1_score(y_test, y_pred)
         prec = precision_score(y_test, y_pred)
 
-        mlflow.log_metric("roc_auc",   auc)
-        mlflow.log_metric("f1_score",  f1)
+        mlflow.log_metric("roc_auc", auc)
+        mlflow.log_metric("f1_score", f1)
         mlflow.log_metric("precision", prec)
 
         logger.info("ROC-AUC=%.3f  F1=%.3f  Precision=%.3f", auc, f1, prec)
@@ -139,14 +144,14 @@ def train(data_path: str = "data/raw/telco_train.csv",
         # ── Dummy baseline ────────────────────────────────────────────────
         dummy = DummyClassifier(strategy="most_frequent", random_state=42)
         dummy.fit(X_train, y_train)
-        d_pred  = dummy.predict(X_test)
+        d_pred = dummy.predict(X_test)
         d_proba = dummy.predict_proba(X_test)[:, 1]
-        d_auc   = roc_auc_score(y_test, d_proba)
-        d_f1    = f1_score(y_test, d_pred, zero_division=0)
-        d_prec  = precision_score(y_test, d_pred, zero_division=0)
+        d_auc = roc_auc_score(y_test, d_proba)
+        d_f1 = f1_score(y_test, d_pred, zero_division=0)
+        d_prec = precision_score(y_test, d_pred, zero_division=0)
 
-        mlflow.log_metric("dummy_roc_auc",   d_auc)
-        mlflow.log_metric("dummy_f1_score",  d_f1)
+        mlflow.log_metric("dummy_roc_auc", d_auc)
+        mlflow.log_metric("dummy_f1_score", d_f1)
         mlflow.log_metric("dummy_precision", d_prec)
 
         # ── Quality gate (exits with 1 on failure) ────────────────────────
@@ -169,11 +174,9 @@ def train(data_path: str = "data/raw/telco_train.csv",
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Telco Churn model")
-    parser.add_argument("--data",     default="data/raw/telco_train.csv")
+    parser.add_argument("--data", default="data/raw/telco_train.csv")
     parser.add_argument("--run-name", default="telco-churn-train")
     parser.add_argument("--no-register", action="store_true")
     args = parser.parse_args()
 
-    train(data_path=args.data,
-          run_name=args.run_name,
-          register=not args.no_register)
+    train(data_path=args.data, run_name=args.run_name, register=not args.no_register)

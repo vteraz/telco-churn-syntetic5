@@ -23,10 +23,8 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import List, Optional
 
 import mlflow.pyfunc
-import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -84,6 +82,7 @@ async def startup_event() -> None:
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
+
 class CustomerInput(BaseModel):
     """Single customer for churn prediction.
 
@@ -91,17 +90,17 @@ class CustomerInput(BaseModel):
     so that validation is consistent between training-time and serving-time.
     """
 
-    customerID: Optional[str] = None
+    customerID: str | None = None
     tenure: int = Field(..., ge=0, le=72, description="Months as customer")
     MonthlyCharges: float = Field(..., ge=0, le=300)
-    TotalCharges: Optional[float] = Field(None, ge=0)
+    TotalCharges: float | None = Field(None, ge=0)
     SeniorCitizen: int = Field(..., ge=0, le=1)
     Contract: str = Field(..., description="Month-to-month | One year | Two year")
     PaymentMethod: str
     InternetService: str
     OnlineSecurity: str
     TechSupport: str
-    Churn: Optional[str] = "No"   # ignored in prediction, required by encode_features
+    Churn: str | None = "No"  # ignored in prediction, required by encode_features
 
     @validator("Contract")
     def validate_contract(cls, v):
@@ -128,14 +127,14 @@ class CustomerInput(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    customerID: Optional[str] = None
+    customerID: str | None = None
     churn_probability: float
     churn_predicted: bool
     model_version: str
 
 
 class BatchRequest(BaseModel):
-    customers: List[CustomerInput] = Field(..., max_items=200)
+    customers: list[CustomerInput] = Field(..., max_items=200)
 
 
 class HealthResponse(BaseModel):
@@ -146,6 +145,7 @@ class HealthResponse(BaseModel):
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _predict_single(customer: CustomerInput) -> float:
     """Run model inference, return churn probability."""
@@ -165,6 +165,7 @@ def _predict_single(customer: CustomerInput) -> float:
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+
 
 @app.get("/health", response_model=HealthResponse, tags=["ops"])
 def health() -> HealthResponse:
@@ -189,20 +190,22 @@ def predict(customer: CustomerInput) -> PredictionResponse:
     )
 
 
-@app.post("/predict/batch",
-          response_model=List[PredictionResponse],
-          tags=["prediction"])
-def predict_batch(request: BatchRequest) -> List[PredictionResponse]:
+@app.post(
+    "/predict/batch", response_model=list[PredictionResponse], tags=["prediction"]
+)
+def predict_batch(request: BatchRequest) -> list[PredictionResponse]:
     """Predict churn probability for up to 200 customers at once."""
     results = []
     for customer in request.customers:
         prob = _predict_single(customer)
-        results.append(PredictionResponse(
-            customerID=customer.customerID,
-            churn_probability=round(prob, 4),
-            churn_predicted=prob >= 0.5,
-            model_version=_model_version,
-        ))
+        results.append(
+            PredictionResponse(
+                customerID=customer.customerID,
+                churn_probability=round(prob, 4),
+                churn_predicted=prob >= 0.5,
+                model_version=_model_version,
+            )
+        )
     return results
 
 

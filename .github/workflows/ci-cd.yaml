@@ -10,7 +10,7 @@ env:
     PYTHON_VERSION: "3.11"
 
 jobs:
-    init:
+    lint-and-test:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v6
@@ -20,20 +20,10 @@ jobs:
               with:
                 python-version: ${{env.PYTHON_VERSION}}
                 cache: 'pip'
-                cache-dependency-path: 'requirements-dev.txt'
+                cache-dependency-path: 'requirements-dev.txt' # this will download cached deps into some folder
             - name: Show version
               run: python -c "import sys; print(sys.version)"
-            - run: |
-                ls -lah
-                pip install -r requirements-dev.txt
-              name: "Install dev dependencies"
-    lint-and-test:
-        needs: [init]
-        runs-on: ubuntu-latest
-        steps:
-            - name: Show version
-              run: |
-                python -c "import sys; print(sys.version)"
-                ls -lah
-
-
+            - name: "Install dev dependencies"
+              run: pip install -r requirements-dev.txt # this will install cached deps into the project workspace
+            - name: Check code style with flake8
+              run: flake8 src/ tests/ --max-line-length=1000 --ignore=E203,B007,F841,F811,W503,F401

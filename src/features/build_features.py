@@ -12,7 +12,6 @@ Slide 17 (integration tests - L4 Feature Parity): serving must use exactly
 from __future__ import annotations
 
 import logging
-from typing import List
 
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -22,7 +21,7 @@ logger = logging.getLogger(__name__)
 # ── Canonical feature list ────────────────────────────────────────────────────
 # IMPORTANT: changing this list breaks serving (slide 12 quality gate catches
 # this via the "Feature count = 19" test).
-FEATURE_COLUMNS: List[str] = [
+FEATURE_COLUMNS: list[str] = [
     "tenure",
     "MonthlyCharges",
     "TotalCharges",
@@ -74,9 +73,18 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
     Raises:
         ValueError: If required columns are missing from ``df``.
     """
-    required = {"tenure", "MonthlyCharges", "TotalCharges", "SeniorCitizen",
-                "Contract", "PaymentMethod", "InternetService",
-                "OnlineSecurity", "TechSupport", "Churn"}
+    required = {
+        "tenure",
+        "MonthlyCharges",
+        "TotalCharges",
+        "SeniorCitizen",
+        "Contract",
+        "PaymentMethod",
+        "InternetService",
+        "OnlineSecurity",
+        "TechSupport",
+        "Churn",
+    }
     missing = required - set(df.columns)
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
@@ -90,11 +98,11 @@ def encode_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # One-hot encode categoricals (drop_first=False for explicit column names)
     for col, categories in [
-        ("Contract",       CONTRACT_DUMMIES),
-        ("PaymentMethod",  PAYMENT_DUMMIES),
+        ("Contract", CONTRACT_DUMMIES),
+        ("PaymentMethod", PAYMENT_DUMMIES),
         ("InternetService", INTERNET_DUMMIES),
         ("OnlineSecurity", ONLINE_SECURITY_DUMMIES),
-        ("TechSupport",    TECH_SUPPORT_DUMMIES),
+        ("TechSupport", TECH_SUPPORT_DUMMIES),
     ]:
         dummies = pd.get_dummies(out[col], prefix=col)
         # Ensure all expected columns present even if category absent in df

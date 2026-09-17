@@ -35,6 +35,7 @@ CATEGORICAL_FEATURES = ["Contract", "PaymentMethod"]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
     """Population Stability Index.
 
@@ -43,10 +44,14 @@ def psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
     > 0.25    → significant drift (consider retraining)
     """
     expected_pct = np.histogram(expected, bins=buckets)[0] / len(expected)
-    actual_pct   = np.histogram(actual,   bins=np.histogram(expected, bins=buckets)[1])[0] / len(actual)
+    actual_pct = np.histogram(actual, bins=np.histogram(expected, bins=buckets)[1])[
+        0
+    ] / len(actual)
     expected_pct = np.clip(expected_pct, 1e-6, None)
-    actual_pct   = np.clip(actual_pct,   1e-6, None)
-    return float(np.sum((actual_pct - expected_pct) * np.log(actual_pct / expected_pct)))
+    actual_pct = np.clip(actual_pct, 1e-6, None)
+    return float(
+        np.sum((actual_pct - expected_pct) * np.log(actual_pct / expected_pct))
+    )
 
 
 def load_reference() -> pd.DataFrame:
@@ -63,9 +68,11 @@ def load_current() -> pd.DataFrame:
     """
     try:
         import boto3  # noqa: F401
+
         s3_path = os.getenv("CURRENT_DATA_S3", "")
         if s3_path:
             import io
+
             s3 = boto3.client("s3")
             bucket, key = s3_path.replace("s3://", "").split("/", 1)
             obj = s3.get_object(Bucket=bucket, Key=key)
@@ -78,11 +85,14 @@ def load_current() -> pd.DataFrame:
     ref = pd.read_csv(REFERENCE_DATA_PATH)
     sample = ref.sample(frac=0.15, random_state=42).copy()
     # Introduce small artificial drift so the test is meaningful
-    sample["tenure"] = (sample["tenure"] * rng.uniform(0.9, 1.1, len(sample))).astype(int).clip(0, 72)
+    sample["tenure"] = (
+        (sample["tenure"] * rng.uniform(0.9, 1.1, len(sample))).astype(int).clip(0, 72)
+    )
     return sample
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture(scope="module")
 def data_pair():
@@ -93,6 +103,7 @@ def data_pair():
 
 
 # ── Drift tests ───────────────────────────────────────────────────────────────
+
 
 class TestNumericDrift:
     """KS-test for numeric features (slide 28)."""
@@ -110,7 +121,9 @@ class TestNumericDrift:
         # Warning but not hard failure per feature —
         # overall failure checked in test_overall_drift_below_threshold
         if p_value < P_VALUE_THRESHOLD:
-            print(f"\nDRIFT WARNING: {feature} p-value={p_value:.4f} < {P_VALUE_THRESHOLD}")
+            print(
+                f"\nDRIFT WARNING: {feature} p-value={p_value:.4f} < {P_VALUE_THRESHOLD}"
+            )
 
 
 class TestCategoricalDrift:
@@ -143,7 +156,9 @@ class TestCategoricalDrift:
 
         _, p_value = stats.chisquare(f_obs=cur_scaled[mask], f_exp=ref_aligned[mask])
         if p_value < P_VALUE_THRESHOLD:
-            print(f"\nDRIFT WARNING: {feature} p-value={p_value:.4f} < {P_VALUE_THRESHOLD}")
+            print(
+                f"\nDRIFT WARNING: {feature} p-value={p_value:.4f} < {P_VALUE_THRESHOLD}"
+            )
 
 
 class TestOverallDrift:
@@ -159,8 +174,7 @@ class TestOverallDrift:
         for feature in NUMERIC_FEATURES:
             if feature in ref.columns and feature in cur.columns:
                 _, p = stats.ks_2samp(
-                    ref[feature].dropna().values,
-                    cur[feature].dropna().values
+                    ref[feature].dropna().values, cur[feature].dropna().values
                 )
                 total += 1
                 if p < P_VALUE_THRESHOLD:
@@ -206,7 +220,9 @@ class TestPSI:
             pytest.skip("MonthlyCharges not in dataset")
 
         ref_proxy = (ref["MonthlyCharges"] / ref["MonthlyCharges"].max()).values
-        cur_proxy = (cur["MonthlyCharges"] / ref["MonthlyCharges"].max()).values  # use ref scale
+        cur_proxy = (
+            cur["MonthlyCharges"] / ref["MonthlyCharges"].max()
+        ).values  # use ref scale
 
         psi_value = psi(ref_proxy, cur_proxy)
         print(f"\nPrediction PSI: {psi_value:.4f} (threshold: {PSI_THRESHOLD})")
@@ -226,8 +242,11 @@ class TestEvidently:
             from evidently.metric_preset import DataDriftPreset
 
             ref, cur = data_pair
-            cols = [c for c in NUMERIC_FEATURES + CATEGORICAL_FEATURES
-                    if c in ref.columns and c in cur.columns]
+            cols = [
+                c
+                for c in NUMERIC_FEATURES + CATEGORICAL_FEATURES
+                if c in ref.columns and c in cur.columns
+            ]
 
             report = Report(metrics=[DataDriftPreset(columns=cols)])
             report.run(reference_data=ref[cols], current_data=cur[cols])

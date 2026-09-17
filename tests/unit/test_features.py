@@ -20,10 +20,11 @@ from src.features.build_features import (
 
 # Expected output columns (excluding target for X)
 X_COLUMNS = [c for c in FEATURE_COLUMNS if c != TARGET_COLUMN]
-N_FEATURES = len(X_COLUMNS)   # must be 19
+N_FEATURES = len(X_COLUMNS)  # must be 19
 
 
 # ── Happy-path ─────────────────────────────────────────────────────────────────
+
 
 class TestEncodeFeatures:
     """Core behaviour of encode_features()."""
@@ -61,6 +62,7 @@ class TestEncodeFeatures:
 
 # ── Immutability ───────────────────────────────────────────────────────────────
 
+
 class TestImmutability:
     """encode_features must NOT modify the caller's DataFrame (slide 26, req 6)."""
 
@@ -79,11 +81,15 @@ class TestImmutability:
 
 # ── Contract one-hot encoding ─────────────────────────────────────────────────
 
-@pytest.mark.parametrize("contract,expected_col", [
-    ("Month-to-month", "Contract_Month-to-month"),
-    ("One year",       "Contract_One year"),
-    ("Two year",       "Contract_Two year"),
-])
+
+@pytest.mark.parametrize(
+    "contract,expected_col",
+    [
+        ("Month-to-month", "Contract_Month-to-month"),
+        ("One year", "Contract_One year"),
+        ("Two year", "Contract_Two year"),
+    ],
+)
 def test_contract_one_hot(sample_raw_df, contract, expected_col):
     """Each contract type maps to exactly one column = 1 (slide 26, req 4)."""
     row = sample_raw_df.copy()
@@ -93,14 +99,14 @@ def test_contract_one_hot(sample_raw_df, contract, expected_col):
     assert result[expected_col].iloc[0] == 1
     # Other contract columns must be 0
     other_contract_cols = [
-        c for c in result.columns
-        if c.startswith("Contract_") and c != expected_col
+        c for c in result.columns if c.startswith("Contract_") and c != expected_col
     ]
     for c in other_contract_cols:
         assert result[c].iloc[0] == 0, f"{c} should be 0 for contract={contract}"
 
 
 # ── Edge cases ────────────────────────────────────────────────────────────────
+
 
 class TestEdgeCases:
     """Slide 26 requirements 3: edge cases."""
@@ -128,6 +134,7 @@ class TestEdgeCases:
 
 # ── get_X_y ───────────────────────────────────────────────────────────────────
 
+
 class TestGetXY:
     """get_X_y returns numpy arrays of correct shape."""
 
@@ -142,5 +149,6 @@ class TestGetXY:
     def test_returns_numpy_arrays(self, sample_raw_df):
         X, y = get_X_y(sample_raw_df)
         import numpy as np
+
         assert isinstance(X, np.ndarray)
         assert isinstance(y, np.ndarray)
