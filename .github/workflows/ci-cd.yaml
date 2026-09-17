@@ -57,6 +57,7 @@ jobs:
     build-and-push:
       name: "Build and push docker image to registry"
       runs-on: ubuntu-latest
+      needs: lint-and-test
       if: github.event_name != 'pull_request'
       permissions:
         contents: read
@@ -179,3 +180,21 @@ jobs:
         - name: Stop API container
           if: always()
           run: docker rm -f churn-api 2>/dev/null || true
+        - name: Send Discord notification
+          if: always()
+          env:
+            DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          run: |
+            if [ -z "$DISCORD_WEBHOOK" ]; then
+              echo "DISCORD_WEBHOOK secret not set — skipping notification"
+              exit 0
+            fi
+            if [ "${{ job.status }}" = "success" ]; then
+              MSG="✅ Production deploy success | sha-${{ github.sha }} | ${{ github.actor }} | ${{ github.ref_name }}"
+            else
+              MSG="❌ Production deploy failure | sha-${{ github.sha }} | ${{ github.actor }} | ${{ github.ref_name }}"
+            fi
+            curl -sf -H "Content-Type: application/json" \
+              -d "{\"content\": \"$MSG\\nRun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}" \
+              "$DISCORD_WEBHOOK"
+            echo "Discord notification sent"
