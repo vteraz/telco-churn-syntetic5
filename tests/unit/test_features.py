@@ -41,9 +41,9 @@ class TestEncodeFeatures:
         """Feature count gate — matches slide 12 quality-gate assertion."""
         result = encode_features(sample_raw_df)
         x_cols = [c for c in result.columns if c != TARGET_COLUMN]
-        assert len(x_cols) == N_FEATURES, (
-            f"Expected {N_FEATURES} features, got {len(x_cols)}: {x_cols}"
-        )
+        assert (
+            len(x_cols) == N_FEATURES
+        ), f"Expected {N_FEATURES} features, got {len(x_cols)}: {x_cols}"
 
     def test_churn_encoded_is_binary(self, sample_raw_df):
         result = encode_features(sample_raw_df)

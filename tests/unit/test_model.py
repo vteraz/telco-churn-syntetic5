@@ -162,9 +162,9 @@ class TestModelQualityGate:
         art = trained_model_artifacts
         pred = art["model"].predict(art["X_test"])
         prec = precision_score(art["y_test"], pred)
-        assert prec >= MIN_PRECISION, (
-            f"Precision {prec:.3f} < threshold {MIN_PRECISION}"
-        )
+        assert (
+            prec >= MIN_PRECISION
+        ), f"Precision {prec:.3f} < threshold {MIN_PRECISION}"
 
     def test_beats_dummy_classifier_auc(self, trained_model_artifacts):
         art = trained_model_artifacts
@@ -174,9 +174,9 @@ class TestModelQualityGate:
         dummy_auc = roc_auc_score(
             art["y_test"], art["dummy"].predict_proba(art["X_test"])[:, 1]
         )
-        assert model_auc > dummy_auc, (
-            f"Model AUC {model_auc:.3f} does not beat DummyClassifier {dummy_auc:.3f}"
-        )
+        assert (
+            model_auc > dummy_auc
+        ), f"Model AUC {model_auc:.3f} does not beat DummyClassifier {dummy_auc:.3f}"
 
     def test_beats_dummy_classifier_f1(self, trained_model_artifacts):
         art = trained_model_artifacts
@@ -184,9 +184,9 @@ class TestModelQualityGate:
         dummy_f1 = f1_score(
             art["y_test"], art["dummy"].predict(art["X_test"]), zero_division=0
         )
-        assert model_f1 > dummy_f1, (
-            f"Model F1 {model_f1:.3f} does not beat DummyClassifier {dummy_f1:.3f}"
-        )
+        assert (
+            model_f1 > dummy_f1
+        ), f"Model F1 {model_f1:.3f} does not beat DummyClassifier {dummy_f1:.3f}"
 
     def test_predict_proba_in_range(self, trained_model_artifacts):
         """All probabilities must be in [0, 1] (slide 17 L2 check)."""

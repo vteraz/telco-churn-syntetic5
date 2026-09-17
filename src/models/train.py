@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-
+import mlflow
 import mlflow.xgboost
 import pandas as pd
 from sklearn.dummy import DummyClassifier
@@ -34,8 +34,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 
-import mlflow
-from src.features.build_features import FEATURE_COLUMNS, TARGET_COLUMN, get_X_y
+from src.features.build_features import get_X_y
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s  %(levelname)s  %(name)s  %(message)s"
@@ -158,7 +157,6 @@ def train(
         quality_gate(auc, f1, prec, d_auc, d_f1, d_prec, n_features)
 
         # ── Log model ─────────────────────────────────────────────────────
-        feature_names = [c for c in FEATURE_COLUMNS if c != TARGET_COLUMN]
         signature = mlflow.models.infer_signature(
             X_train, model.predict_proba(X_train)[:, 1]
         )

@@ -27,3 +27,26 @@ jobs:
               run: pip install -r requirements-dev.txt # this will install cached deps into the project workspace
             - name: Check code style with flake8
               run: flake8 src/ tests/ --max-line-length=1000 --ignore=E203,B007,F841,F811,W503,F401
+            - name: Check code formatting with black
+              run: black --check src/ tests/
+            - name: Check DF schema with Pandera
+              run: pytest tests/unit/test_schema.py -v --tb=short
+            - name: Unit Tests
+              run: |
+                pytest tests/unit/test_features.py \
+                -v --tb=short \
+                --cov=src/features \
+                --cov-report=xml:coverage-features.xml
+            - name: Check model quality
+              run: |
+                pytest tests/unit/test_model.py \
+                -v --tb=short -m slow \
+                --cov=src/features --cov=src/models \
+                --cov-report=xml:coverage-models.xml \
+                --cov-fail-under=0
+            - name: Publish coverage
+              uses: codecov/codecov-action@7
+              if: always()
+              with:
+                files: coverage-features.xml,coverage-models.xml
+                fail_ci_if_error: false
