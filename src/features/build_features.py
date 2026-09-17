@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import logging
 
+import INVALID_PACKAGE
+
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
