@@ -24,7 +24,7 @@ jobs:
               run: python -c "import sys; print(sys.version)"
             - run: |
                 ls -lah
-                pip install --quiet -r requirements-dev.txt
+                pip install -r requirements-dev.txt
               name: "Install dev dependencies"
     lint-and-test:
         needs: [init]
