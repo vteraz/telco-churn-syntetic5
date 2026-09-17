@@ -22,7 +22,9 @@ jobs:
                 cache: 'pip'
             - name: Show version
               run: python -c "import sys; print(sys.version)"
-            - run: pip install --quiet -r requirements-dev.txt
+            - run: |
+                ls -lah
+                pip install --quiet -r requirements-dev.txt
               name: "Install dev dependencies"
     lint-and-test:
         needs: [init]
