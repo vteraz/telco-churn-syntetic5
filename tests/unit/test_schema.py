@@ -20,7 +20,7 @@ from pandera import Column, DataFrameSchema, Check
 TELCO_SCHEMA = DataFrameSchema(
     {
         "tenure": Column(
-            int,
+            str,
             checks=[Check.ge(0), Check.le(72)],
             nullable=False,
             description="Months as customer",
