@@ -45,7 +45,7 @@ jobs:
                 --cov-report=xml:coverage-models.xml \
                 --cov-fail-under=0
             - name: Publish coverage
-              uses: codecov/codecov-action@7
+              uses: codecov/codecov-action@v7
               if: always()
               with:
                 files: coverage-features.xml,coverage-models.xml
